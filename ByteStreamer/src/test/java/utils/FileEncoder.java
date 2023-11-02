@@ -1,6 +1,6 @@
 package utils;
 
-import gbw.io.ValErr;
+import gbw.bytestreamer.ValErr;
 
 import java.io.File;
 import java.io.FileOutputStream;

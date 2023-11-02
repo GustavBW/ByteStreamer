@@ -1,4 +1,4 @@
-package gbw.io;
+package gbw.bytestreamer;
 
 public class Ref<T> {
     private T data;

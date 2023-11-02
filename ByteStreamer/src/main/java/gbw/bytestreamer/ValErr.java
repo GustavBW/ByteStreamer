@@ -1,4 +1,4 @@
-package gbw.io;
+package gbw.bytestreamer;
 
 import java.util.function.Consumer;
 

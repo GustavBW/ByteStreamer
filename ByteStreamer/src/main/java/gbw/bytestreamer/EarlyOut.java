@@ -1,6 +1,6 @@
-package gbw.io;
+package gbw.bytestreamer;
 
-public class EarlyOut extends Throwable {
+public class EarlyOut extends Exception {
 
     public EarlyOut(){}
     public EarlyOut(String message){

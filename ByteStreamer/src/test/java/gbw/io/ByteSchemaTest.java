@@ -1,9 +1,9 @@
 package gbw.io;
 
+import gbw.bytestreamer.*;
 import utils.FileEncoder;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -25,17 +25,17 @@ class ByteSchemaTest {
         final Ref<Integer> intVal = new Ref<>();
         ByteSchema schema = ByteSchema
                 .first(4, Integer.class)
-                .onError(System.out::println)
-                .exec(intVal::set)
-                .onEarlyOutAppend(System.out::println);
+                .exec(intVal::set);
 
         ValErr<SchemaHandler,Exception> handler = SchemaHandler.of(encodeTestFile.val(), schema);
         if(handler.hasError()) throw handler.err();
 
         handler.val().run();
 
-        assertEquals(127, intVal.get());
+        assertEquals((byte) 127, intVal.get());
     }
+
+
 
     @org.junit.jupiter.api.Test
     void next() {

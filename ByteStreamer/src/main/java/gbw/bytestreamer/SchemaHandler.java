@@ -1,4 +1,4 @@
-package gbw.io;
+package gbw.bytestreamer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,7 +23,9 @@ public class SchemaHandler implements Runnable{
         try{
             int nextByteUnsigned;
             while((nextByteUnsigned = source.read()) != -1){
-                schema.push((byte) (nextByteUnsigned - 128));
+                if(schema.push((byte) nextByteUnsigned)){
+                    break;
+                }
             }
         }catch(Exception ignored){
             ignored.printStackTrace();

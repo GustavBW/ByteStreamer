@@ -1,19 +1,19 @@
-package gbw.io;
+package gbw.bytestreamer;
 
 import java.util.function.Consumer;
 
-public class HandlerConfigurator<T> {
+public class EntryConfigurator<T> {
     private Consumer<Throwable> onExceptionDo = e -> {};
     private boolean hasErrorHandling = false;
-    private final Ref<FailingConsumer<T>> execRef;
+    private final ByteSchemaEntry<T> entry;
     private final ByteSchema schema;
 
-    public HandlerConfigurator(Ref<FailingConsumer<T>> execRef, ByteSchema schema){
-        this.execRef = execRef;
+    public EntryConfigurator(ByteSchemaEntry<T> entry, ByteSchema schema){
+        this.entry = entry;
         this.schema = schema;
     }
 
-    public HandlerConfigurator<T> onError(Consumer<Throwable> onExceptionDo){
+    public EntryConfigurator<T> onError(Consumer<Throwable> onExceptionDo){
         this.onExceptionDo = onExceptionDo;
         hasErrorHandling = true;
         return this;
@@ -23,22 +23,27 @@ public class HandlerConfigurator<T> {
      * Requires that this definition is placed within a try-catch that catches EarlyOut specifically.
      * @return
      */
-    public HandlerConfigurator<T> onErrorEarlyOut(){
+    public EntryConfigurator<T> onErrorEarlyOut(){
+        hasErrorHandling = true;
+        return this;
+    }
 
+    public EntryConfigurator<T> on(EntryHandlingEvents event, Runnable func){
+        entry.setHandlerOf(event,func);
         return this;
     }
 
     public ByteSchema exec(FailingConsumer<T> exec){
         if(hasErrorHandling){
-            execRef.set(t -> {
+            entry.exec().set(t -> {
                 try{
                     exec.accept(t);
-                }catch (Throwable e){
+                }catch (EarlyOut e){
                     onExceptionDo.accept(e);
                 }
             });
         }else{
-            execRef.set(exec);
+            entry.exec().set(exec);
         }
         return schema;
     }
