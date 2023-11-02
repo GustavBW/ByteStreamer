@@ -74,19 +74,27 @@ class ByteSchemaTest {
 
     @org.junit.jupiter.api.Test
     void array() throws Exception {
-        File testFile = getEncodedTestFile(testDir + "/array.bin", new byte[]{0,0,0,127,0,0,0,127,0,0,0,127,0,0,0,127});
-        final List<Integer> expectedResult = List.of(127,127,127,127);
+        File testFile = getEncodedTestFile(testDir + "/array.bin", new byte[]{0,0,0,127,0,0,0,127,0,0,0,127,0,0,0,127,0,0,0,126,0,0,0,126,0,0,0,126,0,0,0,-128});
+        final List<Integer> expectedList1 = List.of(127,127,127,127);
+        final List<Integer> expectedList2 = List.of(126,126,126,126);
 
-        List<Integer> resultList = new ArrayList<>();
+        List<Integer> resultList1 = new ArrayList<>();
+        List<Integer> resultList2 = new ArrayList<>();
         ByteSchema schema = ByteSchema.create()
                 .array(4,Integer.class)
-                .exec(resultList::add);
+                .exec(resultList1::add)
+                .array(4, Integer.class)
+                .exec(resultList2::add);
 
         getHandlerFor(schema, testFile).run();
         //List deep equals
-        assertEquals(expectedResult.size(), resultList.size());
-        for(int i = 0; i < expectedResult.size(); i++){
-            assertEquals(expectedResult.get(i), resultList.get(i));
+        assertEquals(expectedList1.size(), resultList1.size());
+        for(int i = 0; i < expectedList1.size(); i++){
+            assertEquals(expectedList1.get(i), resultList1.get(i));
+        }
+        assertEquals(expectedList2.size(), resultList2.size());
+        for(int i = 0; i < expectedList2.size(); i++){
+            assertEquals(expectedList2.get(i), resultList2.get(i));
         }
     }
 
