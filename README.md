@@ -52,4 +52,10 @@ ByteSchema.string(Encoding).exec(String -> {});     //Same as array, although St
 ```
 
 
+## But... why?
+Because we tend to use what is easy - not efficient. <br>
+The fantastical endgame to this project would be generalized, efficient data deserializers for most languages making JSON obsolete for networking purposes, and reducing all package sizes with probably about 70%.  <br>
+Furthermore, this approach supports streaming by default, but has no issue with a single, complete package. Just an added benefit.
+
+
  
