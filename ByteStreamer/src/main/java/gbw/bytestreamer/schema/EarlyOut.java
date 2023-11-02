@@ -1,4 +1,4 @@
-package gbw.bytestreamer;
+package gbw.bytestreamer.schema;
 
 public class EarlyOut extends Exception {
 

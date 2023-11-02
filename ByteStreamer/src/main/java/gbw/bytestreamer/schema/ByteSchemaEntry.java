@@ -1,4 +1,7 @@
-package gbw.bytestreamer;
+package gbw.bytestreamer.schema;
+
+import gbw.bytestreamer.util.FailingConsumer;
+import gbw.bytestreamer.util.Ref;
 
 import java.util.HashMap;
 import java.util.Map;

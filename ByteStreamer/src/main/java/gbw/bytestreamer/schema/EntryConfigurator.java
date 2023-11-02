@@ -1,9 +1,11 @@
-package gbw.bytestreamer;
+package gbw.bytestreamer.schema;
+
+import gbw.bytestreamer.util.FailingConsumer;
 
 import java.util.function.Consumer;
 
 public class EntryConfigurator<T> {
-    private Consumer<Throwable> onExceptionDo = e -> {};
+    private Consumer<Exception> onExceptionDo = e -> {};
     private boolean hasErrorHandling = false;
     private final ByteSchemaEntry<T> entry;
     private final ByteSchema schema;
@@ -13,17 +15,8 @@ public class EntryConfigurator<T> {
         this.schema = schema;
     }
 
-    public EntryConfigurator<T> onError(Consumer<Throwable> onExceptionDo){
+    public EntryConfigurator<T> onError(Consumer<Exception> onExceptionDo){
         this.onExceptionDo = onExceptionDo;
-        hasErrorHandling = true;
-        return this;
-    }
-
-    /**
-     * Requires that this definition is placed within a try-catch that catches EarlyOut specifically.
-     * @return
-     */
-    public EntryConfigurator<T> onErrorEarlyOut(){
         hasErrorHandling = true;
         return this;
     }

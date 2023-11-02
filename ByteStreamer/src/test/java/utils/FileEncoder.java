@@ -1,6 +1,6 @@
 package utils;
 
-import gbw.bytestreamer.ValErr;
+import gbw.bytestreamer.util.ValErr;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -22,7 +22,7 @@ public class FileEncoder {
             }
         }
 
-        try(FileOutputStream fos = new FileOutputStream(new File(fileName))){
+        try(FileOutputStream fos = new FileOutputStream(file)){
             fos.write(data);
         }catch(Exception e){
             return ValErr.error(e);
