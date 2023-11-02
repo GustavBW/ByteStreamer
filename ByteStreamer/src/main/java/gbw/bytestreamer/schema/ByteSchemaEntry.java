@@ -3,33 +3,12 @@ package gbw.bytestreamer.schema;
 import gbw.bytestreamer.util.FailingConsumer;
 import gbw.bytestreamer.util.Ref;
 
-import java.util.HashMap;
-import java.util.Map;
+public interface ByteSchemaEntry<T> {
+    int amount();
+    Class<T> as();
+    Ref<FailingConsumer<T>> exec();
+    void setHandlerOf(EntryHandlingEvents event, Runnable func);
+    Runnable getHandlerOf(EntryHandlingEvents event);
+    EntryType getType();
 
-public class ByteSchemaEntry<T> {
-
-    private final int amount;
-    private final Class<T> as;
-    private final Ref<FailingConsumer<T>> exec;
-    private Map<EntryHandlingEvents, Runnable> eventHandlers;
-    public ByteSchemaEntry(int amount, Class<T> as, Ref<FailingConsumer<T>> exec){
-        this.amount = amount;
-        this.as = as;
-        this.exec = exec;
-    }
-    public int amount(){return amount;}
-    public Class<T> as(){return as;}
-    public Ref<FailingConsumer<T>> exec(){return exec;}
-    public void setHandlerOf(EntryHandlingEvents event, Runnable func){
-        if(eventHandlers == null){
-            eventHandlers = new HashMap<>();
-        }
-        eventHandlers.put(event,func);
-    }
-    public Runnable getHandlerOf(EntryHandlingEvents event){
-        if(eventHandlers == null){
-            return null;
-        }
-        return eventHandlers.get(event);
-    }
 }

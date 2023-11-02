@@ -1,10 +1,9 @@
 package gbw.bytestreamer.schema;
 
-import gbw.bytestreamer.schema.ByteSchema;
-import gbw.bytestreamer.schema.SchemaHandler;
 import gbw.bytestreamer.util.Ref;
 import gbw.bytestreamer.util.ValErr;
 import utils.FileEncoder;
+import utils.Hooks;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -74,6 +73,24 @@ class ByteSchemaTest {
     }
 
     @org.junit.jupiter.api.Test
+    void array() throws Exception {
+        File testFile = getEncodedTestFile(testDir + "/array.bin", new byte[]{0,0,0,127,0,0,0,127,0,0,0,127,0,0,0,127});
+        final List<Integer> expectedResult = List.of(127,127,127,127);
+
+        List<Integer> resultList = new ArrayList<>();
+        ByteSchema schema = ByteSchema.create()
+                .array(4,Integer.class)
+                .exec(resultList::add);
+
+        getHandlerFor(schema, testFile).run();
+        //List deep equals
+        assertEquals(expectedResult.size(), resultList.size());
+        for(int i = 0; i < expectedResult.size(); i++){
+            assertEquals(expectedResult.get(i), resultList.get(i));
+        }
+    }
+
+    @org.junit.jupiter.api.Test
     void push() throws Exception {
 
     }
@@ -85,7 +102,7 @@ class ByteSchemaTest {
         Ref<String> msg = new Ref<>("No message...");
         ByteSchema schema = ByteSchema
                 .first(4, Integer.class)
-                .onError(e -> msg.set(e.getMessage()))
+                .onEarlyOut(e -> msg.set(e.getMessage()))
                 .exec(i -> {
                     throw new EarlyOut(expectedMessage);
                 });
@@ -178,6 +195,7 @@ class ByteSchemaTest {
 
 
     }
+
 
 
 }

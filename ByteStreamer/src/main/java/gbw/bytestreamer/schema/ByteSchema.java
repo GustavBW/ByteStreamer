@@ -27,7 +27,7 @@ public class ByteSchema implements AutoCloseable{
     private final List<Consumer<Byte>> onPushAny = new ArrayList<>();
     private Consumer<Byte> onSchemaOverflow = b -> {};
     private final List<ByteSchemaEntry<Object>> entries = new ArrayList<>();
-    private boolean isComplete = false;
+    private boolean isComplete = false, isPopulated = false;
     private Runnable onSchemaComplete = () -> {};
     private Consumer<Exception> onSchemaIncomplete = Exception::printStackTrace;
 
@@ -37,16 +37,25 @@ public class ByteSchema implements AutoCloseable{
      * Initializes the ByteSchema and prepares the first expected element/entry
      * @param amount how many bytes to read
      * @param as what to parse those bytes as
-     * @return an EntryConfigurator which allows for configuration of this specific {@link ByteSchemaEntry}. <br>
+     * @return an EntryConfigurator which allows for configuration of this specific {@link SingleTypeEntry}. <br>
      * This in turn returns the schema when the handling function is set {@link EntryConfigurator#exec}
      */
     public static <T> EntryConfigurator<T> first(int amount, Class<T> as){
         final Ref<FailingConsumer<T>> execRef = new Ref<>();
         ByteSchema schema = new ByteSchema();
-        ByteSchemaEntry<T> entry = new ByteSchemaEntry<>(amount, as, execRef);
-        schema.addEntry((ByteSchemaEntry<Object>) entry);
-        schema.currentBuffer = new byte[amount];
+        SingleTypeEntry<T> entry = new SingleTypeEntry<>(amount, as, execRef);
+        schema.addEntry((SingleTypeEntry<Object>) entry);
+        init(entry,schema);
         return new EntryConfigurator<T>(entry, schema);
+    }
+
+    private static <T> void init(ByteSchemaEntry<T> firstEntry, ByteSchema schema){
+        schema.currentBuffer = new byte[firstEntry.amount()];
+        schema.isPopulated = true;
+    }
+
+    public static ByteSchema create(){
+        return new ByteSchema();
     }
 
     /**
@@ -56,7 +65,7 @@ public class ByteSchema implements AutoCloseable{
     public <T> EntryConfigurator<T> next(Class<T> as){
         int sizeOfAs = Size.of(as);
         if(sizeOfAs == -1){
-            throw new RuntimeException("Class provided is not known and cannot be found.");
+            throw new SchemaException("Class provided is not known and cannot be found.");
         }
         return next(sizeOfAs, as);
     }
@@ -75,12 +84,40 @@ public class ByteSchema implements AutoCloseable{
      */
     public <T> EntryConfigurator<T> next(int amount, Class<T> as){
         final Ref<FailingConsumer<T>> execRef = new Ref<>();
-        ByteSchemaEntry<T> entry = new ByteSchemaEntry<T>(amount, as, execRef);
-        this.addEntry((ByteSchemaEntry<Object>) entry);
+        SingleTypeEntry<T> entry = new SingleTypeEntry<T>(amount, as, execRef);
+        this.addEntry((SingleTypeEntry<Object>) entry);
+        if(!this.isPopulated) {
+            init(entry, this);
+        }
         return new EntryConfigurator<>(entry, this);
     }
 
-
+    /**
+     * Behaves just like {@link ByteSchema#next}, however the provided handling function is executed FOR EACH ELEMENT in the array individually <br>
+     * <pre>
+     *     {@code
+     *     ByteSchema schema = ByteSchema
+     *      {...}
+     *      .next(4, Integer.class) //<- Entry specification
+     *      .exec(int -> {..})      //<- Handling function
+     *      {...}
+     *     }
+     * </pre>
+     * @param length of array
+     * @param as type of each element in array - must be known by Size.of(...)
+     */
+    public <T> EntryConfigurator<T> array(int length, Class<T> as){
+        if(Size.of(as) == -1){
+            throw new SchemaException("Only arrays of types known to gbw.bytestreamer.util.Size are valid - mostly arrays of primitive types that is.");
+        }
+        final Ref<FailingConsumer<T>> execRef = new Ref<>();
+        ArrayTypeEntry<T> entry = new ArrayTypeEntry<>(length, as, execRef);
+        this.addEntry((ArrayTypeEntry<Object>) entry);
+        if(!this.isPopulated) {
+            init(entry, this);
+        }
+        return new EntryConfigurator<>(entry, this);
+    }
 
     /**
      * @return True when complete. Pushing anymore bytes to the schema will be ignored.
@@ -98,15 +135,58 @@ public class ByteSchema implements AutoCloseable{
             bufferIndexOfNext = 0;
         }
         addToBuffer(b);
+        //If there's the required amount of data in the buffer
         if (bufferIndexOfNext >= current.amount()){
-            execEntry(current);
-            programCounter++;
-            isComplete = programCounter >= entries.size();
-            if(isComplete){
-                onSchemaComplete.run();
+            //If repeat == true, don't proceed. (In the case of Array types, the same entry may have to be executed many times).
+            if(!execEntry(current)){
+                Runnable postProcess = current.getHandlerOf(EntryHandlingEvents.POST_ENTRY_COMPLETION);
+                if(postProcess != null){
+                    postProcess.run();
+                }
+                programCounter++;
+                isComplete = programCounter >= entries.size();
+                if(isComplete){
+                    onSchemaComplete.run();
+                }
             }
         }
         return isComplete;
+    }
+
+    /**
+     * @return true if the current entry should be repeated.
+     */
+    private <T> boolean execEntry(ByteSchemaEntry<T> entry){
+        boolean repeat = false;
+        try{
+            FailingConsumer<T> func = entry.exec().get();
+            T data = UnsafeBufferParser.parse(entry.as(), currentBuffer);
+            func.accept(data);
+        }catch(EarlyOut e){
+            //If the early out wasn't caught by the handler itself (as facilitated by EntryConfigurator)
+            //We assume it's probably a systematic error not pertaining to the entry itself.
+            onEarlyOut.forEach(func -> func.accept(e));
+            //And close the schema to avoid further issues.
+            close(e);
+        }catch(UnsafeBufferParser.UncoveredTypeException e){
+            Runnable eventHandler = entry.getHandlerOf(EntryHandlingEvents.BUFFER_PARSING_ERROR);
+            if(eventHandler != null){
+                eventHandler.run();
+            }
+        }catch(Exception e){
+            //We assume it's a consumption error.
+            Runnable eventHandler = entry.getHandlerOf(EntryHandlingEvents.CONSUMPTION_ERROR);
+            if(eventHandler != null){
+                eventHandler.run();
+            }
+        }
+        //i.e. ArrayTypeEntry is executed for the length of the array, so we need to ask it if it's done.
+        if(entry.getType() == EntryType.MULTI){
+            repeat = !((IMultiEntry) entry).isComplete();
+        }
+        //regardless, clear the buffer.
+        currentBuffer = null;
+        return repeat;
     }
 
     /**
@@ -168,29 +248,6 @@ public class ByteSchema implements AutoCloseable{
     }
     public void close(Exception why){
         if (!isComplete) onSchemaIncomplete.accept(why);
-    }
-
-    private <T> void execEntry(ByteSchemaEntry<T> entry){
-        try{
-            FailingConsumer<T> func = entry.exec().get();
-            T data = UnsafeBufferParser.parse(entry.as(), currentBuffer);
-            func.accept(data);
-        }catch(EarlyOut e){
-            onEarlyOut.forEach(func -> func.accept(e));
-        }catch(UnsafeBufferParser.UncoveredTypeException e){
-            Runnable eventHandler = entry.getHandlerOf(EntryHandlingEvents.BUFFER_PARSING_ERROR);
-            if(eventHandler != null){
-                e.printStackTrace();
-                eventHandler.run();
-            }
-        }catch(Exception e){
-            //We assume it's a consumption error.
-            Runnable eventHandler = entry.getHandlerOf(EntryHandlingEvents.CONSUMPTION_ERROR);
-            if(eventHandler != null){
-                eventHandler.run();
-            }
-        }
-        currentBuffer = null;
     }
 
     private void addToBuffer(byte b){

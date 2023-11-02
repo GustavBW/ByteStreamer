@@ -5,7 +5,7 @@ import gbw.bytestreamer.util.FailingConsumer;
 import java.util.function.Consumer;
 
 public class EntryConfigurator<T> {
-    private Consumer<Exception> onExceptionDo = e -> {};
+    private Consumer<EarlyOut> onExceptionDo = e -> {};
     private boolean hasErrorHandling = false;
     private final ByteSchemaEntry<T> entry;
     private final ByteSchema schema;
@@ -15,7 +15,7 @@ public class EntryConfigurator<T> {
         this.schema = schema;
     }
 
-    public EntryConfigurator<T> onError(Consumer<Exception> onExceptionDo){
+    public EntryConfigurator<T> onEarlyOut(Consumer<EarlyOut> onExceptionDo){
         this.onExceptionDo = onExceptionDo;
         hasErrorHandling = true;
         return this;
@@ -27,16 +27,26 @@ public class EntryConfigurator<T> {
     }
 
     public ByteSchema exec(FailingConsumer<T> exec){
+        FailingConsumer<T> finalExec;
+        if(entry instanceof IOnEntryHandlingDoFirst){
+            finalExec = t -> {
+                ((IOnEntryHandlingDoFirst) entry).getOnExecAcceptDoFirst().run();
+                exec.accept(t);
+            };
+        } else {
+            finalExec = exec;
+        }
+
         if(hasErrorHandling){
             entry.exec().set(t -> {
                 try{
-                    exec.accept(t);
+                    finalExec.accept(t);
                 }catch (EarlyOut e){
                     onExceptionDo.accept(e);
                 }
             });
         }else{
-            entry.exec().set(exec);
+            entry.exec().set(finalExec);
         }
         return schema;
     }
