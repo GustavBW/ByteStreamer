@@ -1,4 +1,4 @@
-package gbw.bytestreamer.schema;
+package gbw.bytestreamer.schema.exceptions;
 
 public class SchemaException extends RuntimeException{
     public SchemaException(String message){

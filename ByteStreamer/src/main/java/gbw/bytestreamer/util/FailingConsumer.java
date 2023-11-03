@@ -1,7 +1,7 @@
 package gbw.bytestreamer.util;
 
 
-import gbw.bytestreamer.schema.EarlyOut;
+import gbw.bytestreamer.schema.exceptions.EarlyOut;
 
 @FunctionalInterface
 public interface FailingConsumer<T> {

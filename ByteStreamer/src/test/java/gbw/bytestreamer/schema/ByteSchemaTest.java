@@ -1,15 +1,16 @@
 package gbw.bytestreamer.schema;
 
+import gbw.bytestreamer.schema.exceptions.EarlyOut;
 import gbw.bytestreamer.util.Ref;
 import gbw.bytestreamer.util.ValErr;
 import utils.FileEncoder;
-import utils.Hooks;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class ByteSchemaTest {
 
@@ -81,9 +82,9 @@ class ByteSchemaTest {
         List<Integer> resultList1 = new ArrayList<>();
         List<Integer> resultList2 = new ArrayList<>();
         ByteSchema schema = ByteSchema.create()
-                .array(4,Integer.class)
+                .many(4,Integer.class)
                 .exec(resultList1::add)
-                .array(4, Integer.class)
+                .many(4, Integer.class)
                 .exec(resultList2::add);
 
         getHandlerFor(schema, testFile).run();
@@ -95,6 +96,27 @@ class ByteSchemaTest {
         assertEquals(expectedList2.size(), resultList2.size());
         for(int i = 0; i < expectedList2.size(); i++){
             assertEquals(expectedList2.get(i), resultList2.get(i));
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void knownSizeList() throws Exception{
+        File testFile = getEncodedTestFile(testDir + "/knownSizeList.bin", new byte[]{0,0,0,127,0,0,0,127,0,0,0,127,0,0,0,127});
+        List<Integer> expectedList = List.of(127,127,127,127);
+
+        Ref<List<Integer>> listRef = new Ref<>();
+
+        ByteSchema schema = ByteSchema.create()
+                .list(4, Integer.class)
+                .exec(listRef::set);
+
+        getHandlerFor(schema, testFile).run();
+
+        List<Integer> asObtainedFromRef = listRef.get();
+        assertNotNull(asObtainedFromRef);
+        assertEquals(4, asObtainedFromRef.size());
+        for(int i = 0; i < asObtainedFromRef.size(); i++){
+            assertEquals(expectedList.get(i), asObtainedFromRef.get(i));
         }
     }
 

@@ -40,7 +40,7 @@ EntryConfigurator
 ``` 
 
 ### How it Works Behind The Hood
-A lot of java.util.function, extremely unsafe, explicit type casting and a couple of byte buffers.
+A lot of java.util.function, generics, extremely unsafe, explicit type casting and a couple of byte buffers.
 
 ## Currently Supports
 Any amount of all primitive, unsigned types (int8, int16, int32, int64, float32, float64, null*) <br>

@@ -1,6 +1,6 @@
 package gbw.bytestreamer.file;
 
-import gbw.bytestreamer.schema.SingleTypeEntry;
+import gbw.bytestreamer.schema.entries.SingleTypeEntry;
 import gbw.bytestreamer.util.Ref;
 import gbw.bytestreamer.util.ValErr;
 

@@ -1,4 +1,4 @@
-package gbw.bytestreamer.schema;
+package gbw.bytestreamer.schema.interfaces;
 
 import java.util.function.Consumer;
 
