@@ -161,7 +161,7 @@ class ByteSchemaTest {
     }
     @org.junit.jupiter.api.Test
     void onSchemaComplete() throws Exception {
-        File file = getEncodedTestFile(testDir + "/onSchemaComplete.bin", new byte[]{1,2,3,4});
+        File file = getEncodedTestFile(testDir + "/onSchemaComplete.bin", new byte[]{0,0,0,127});
 
         //Check if it works in general:
         String expectedMsg = "This, not the other one.";
@@ -174,7 +174,7 @@ class ByteSchemaTest {
 
         getHandlerFor(schema, file).run();
 
-        assertEquals(16909060, intVal.get());
+        assertEquals(127, intVal.get());
         assertEquals(expectedMsg, msg.get());
 
         //Check if it only executes exactly once.

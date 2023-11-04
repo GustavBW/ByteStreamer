@@ -8,14 +8,16 @@
 By constructing a generic "ByteSchema" - you can declaratively express exactly what should happen:
 ```java
 ByteSchema schema = ByteSchema
-    .first(4, Integer.class)
+    .first(<byteAmount>, Integer.class)
         .exec(i -> System.out.println("We got an int: " + i));
-    .next(8, Double.class)
+    .next(<byteAmount>, Double.class)
         .on(Events.BUFFER_PARSING_ERROR, () -> System.out.println("Double down"))
-        .exec(...)
-    .skip(4)
-    .array(4, Float.class)
-        .exec(...);
+        .exec(double -> ...)
+    .skip(<byteAmount>)
+    .many(<howMany>, Float.class)
+        .exec(float -> ...)
+    .list(<length>, Integer.class)
+        .exec(List<Integer> -> ...);
 ```
 
 Error handling is explicitly declared with a multitude of hooks to allow for extensions and custom behaviour. <br>
@@ -49,19 +51,20 @@ NB: Currently got an encoding / parsing error of signed types (thanks Java) - so
 *assumed to be 8 bits of "0"
 
 ### Next Up
-Known-size arrays (an array where the length is known beforehand, either by standardization of a pre-cursing int to tell the length or manually given) <br>
+Unknown size arrays 
 Aswell as more dynamic/flexible approaches based on matching custom byte segments:
 ```java
-ByteSchema.until(0, Integer.class).exec(List<Integer> -> {...}); //Until a byte that is 0, collect int32's into a variable size array.
-ByteSchema.string(11, Encoding).exec(String -> {}); //.array(length,type) approach although the type is given by the dedicated method.
-ByteSchema.string(Encoding).exec(String -> {});     //Same as until(0,Byte.class), although Strings require a bit more guidance.
+ByteSchema.list(<terminationPattern>, Class).exec(List<Class> -> ...);  //Until the terminationPatther, accumulate, then handle the gathered list.
+ByteSchema.until(<terminationPattern>, Class).exec(Class -> {...});     //Until the terminationPattern "for each" each parsed element.
+ByteSchema.string(<charLength>, Encoding).exec(String -> {}); // How many characters of what encoding should be gathered, parsed and handed
+ByteSchema.string(Encoding).exec(String -> {});               //Requires standardized terminating pattern.
 ```
 
 
 ## But... why?
 Because we tend to use what is easy - not efficient. <br>
 The fantastical endgame to this project would be generalized, efficient data deserializers for most languages making JSON obsolete for networking purposes, and reducing all package sizes with probably about 70%.  <br>
-Furthermore, this approach supports streaming by default, but has no issue with a single, complete package. Just an added benefit.
+Furthermore, this approach supports streaming by default, but has no issue with a single, complete package. 
 
 
  

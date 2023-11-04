@@ -2,12 +2,12 @@ package gbw.bytestreamer.schema;
 
 import gbw.bytestreamer.schema.exceptions.EarlyOut;
 import gbw.bytestreamer.schema.interfaces.ByteSchemaEntry;
-import gbw.bytestreamer.schema.interfaces.IAccumulatingEntry;
-import gbw.bytestreamer.schema.interfaces.IOnEntryHandlingDoFirst;
+import gbw.bytestreamer.util.BufferParser;
 import gbw.bytestreamer.util.FailingConsumer;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class EntryConfigurator<T,R> {
     private Consumer<EarlyOut> onExceptionDo = e -> {};
@@ -26,17 +26,12 @@ public class EntryConfigurator<T,R> {
         return this;
     }
 
-    public EntryConfigurator<T,R> on(EntryHandlingEvents event, Runnable func){
-        entry.setHandlerOf(event,func);
-        return this;
-    }
-
     public ByteSchema exec(FailingConsumer<R> exec){
         FailingConsumer<R> possiblyRedirected = checkRedirects(exec);
         FailingConsumer<R> possiblyPrepended = prependFunctions(possiblyRedirected);
         FailingConsumer<R> maybeWithErrorHandling = appendErrorHandling(possiblyPrepended);
 
-        entry.exec().set(maybeWithErrorHandling);
+        entry.setOnExec(maybeWithErrorHandling);
         return schema;
     }
     private FailingConsumer<R> appendErrorHandling(FailingConsumer<R> execFunc){
@@ -53,17 +48,30 @@ public class EntryConfigurator<T,R> {
     }
 
     private FailingConsumer<R> prependFunctions(FailingConsumer<R> execFunc){
-        if(entry instanceof IOnEntryHandlingDoFirst){
-            return t -> {
-                ((IOnEntryHandlingDoFirst) entry).getOnExecAcceptDoFirst().run();
-                execFunc.accept(t);
-            };
-        }
         return execFunc;
     }
 
     private FailingConsumer<R> checkRedirects(FailingConsumer<R> execFunc) {
         return execFunc;
     }
+    /**
+     * @param onConsumptionError A function receiving said error, and returning true if the error was expected and taken care of.
+     */
+    public EntryConfigurator<T,R> onConsumptionError(Function<Exception,Boolean> onConsumptionError){
+        entry.getEventManager().setOnConsumptionError(onConsumptionError);
+        return this;
+    }
+    /**
+     * @param onBufferParsingError a function receiving said error, and returning true if the error was expected and taken care of.
+     */
+    public EntryConfigurator<T,R> setOnBufferParsingError(Function<BufferParser.ParsingException,Boolean> onBufferParsingError){
+        entry.getEventManager().setOnBufferParsingError(onBufferParsingError);
+        return this;
+    }
+    public EntryConfigurator<T,R> setOnCompletion(Runnable onCompletion){
+        entry.getEventManager().setOnCompletion(onCompletion);
+        return this;
+    }
+
 
 }

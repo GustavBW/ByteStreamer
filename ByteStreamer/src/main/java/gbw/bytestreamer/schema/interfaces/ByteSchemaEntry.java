@@ -1,9 +1,8 @@
 package gbw.bytestreamer.schema.interfaces;
 
-import gbw.bytestreamer.schema.EntryHandlingEvents;
-import gbw.bytestreamer.schema.EntryType;
+import gbw.bytestreamer.schema.entries.EntryEventManager;
+import gbw.bytestreamer.schema.exceptions.EarlyOut;
 import gbw.bytestreamer.util.FailingConsumer;
-import gbw.bytestreamer.util.Ref;
 
 /**
  *
@@ -12,25 +11,27 @@ import gbw.bytestreamer.util.Ref;
  */
 public interface ByteSchemaEntry<T,R> {
     /**
-     * @return The amount of bytes to collect
+     * @return The amount of bytes to collect for the next element this entry expects
      */
     int amount();
     /**
-     * @return What type to parse those bytes as
+     * @return What type to parse the next element gathered as
      */
-    Class<T> as();
+    Class<?> as();
 
     /**
-     * For some entires T != R - and so a way of transforming the value must be provided. <br>
-     * The default implementation for most is NOOP.
+     * After the first layer of accumulation and parsing in the ByteSchema, each entry's push is called.
+     * The element pushed should, by all account, be of the type requested by the entry, or not called at all. See {@link gbw.bytestreamer.schema.ByteSchema#parseAndPush(ByteSchemaEntry)}
+     * @param element - hopefully of the type returned by the latest query of ByteSchema.as().
+     * @throws EarlyOut An entry may throw an EarlyOut outside itself as to prematurely halt the execution of the entire schema.
+     * @throws Exception Any other exception thrown, will be handled as a "Consumption Error" and if no handler is provided, the schema closes as well.
      */
-    R transform(T data);
+    void push(Object element) throws EarlyOut;
+    boolean isComplete();
+    void setOnExec(FailingConsumer<R> func);
     /**
-     * @return
+     * The handler the Schema will run if an exception escapes the entries' error handling.
      */
-    Ref<FailingConsumer<R>> exec();
-    void setHandlerOf(EntryHandlingEvents event, Runnable func);
-    Runnable getHandlerOf(EntryHandlingEvents event);
-    EntryType getType();
+    EntryEventManager getEventManager();
 
 }

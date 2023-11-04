@@ -1,25 +1,23 @@
 package gbw.bytestreamer.schema.entries;
 
-import gbw.bytestreamer.schema.EntryConfigurator;
-import gbw.bytestreamer.schema.EntryType;
-import gbw.bytestreamer.schema.interfaces.IMultiEntry;
-import gbw.bytestreamer.schema.interfaces.IOnEntryHandlingDoFirst;
+import gbw.bytestreamer.schema.exceptions.EarlyOut;
+import gbw.bytestreamer.schema.interfaces.ByteSchemaEntry;
 import gbw.bytestreamer.util.FailingConsumer;
 import gbw.bytestreamer.util.Ref;
 import gbw.bytestreamer.util.Size;
 
-public class ManyTypeEntry<T> extends AbstractSchemaEntry<T,T> implements IOnEntryHandlingDoFirst, IMultiEntry {
+public class ManyTypeEntry<T> implements ByteSchemaEntry<T,T> {
     private final int length;
-    private final Ref<FailingConsumer<T>> exec;
+    private FailingConsumer<T> forEachElementDo;
     private final int byteSize;
+    private final Class<T> as;
     private final Ref<Integer> indexOfThis = new Ref<>(0);
-    private final Runnable onExecAcceptDoFirst = () -> indexOfThis.set(indexOfThis.get() + 1);
+    private final EntryEventManager eventManager = new EntryEventManager();
 
-    public ManyTypeEntry(int length, Class<T> as, Ref<FailingConsumer<T>> exec){
-        super(as, EntryType.MULTI);
+    public ManyTypeEntry(int length, Class<T> as){
+        this.as = as;
         this.length = length;
         this.byteSize = Size.of(as);
-        this.exec = exec;
     }
 
     /**
@@ -29,27 +27,23 @@ public class ManyTypeEntry<T> extends AbstractSchemaEntry<T,T> implements IOnEnt
     public int amount() {return byteSize;}
 
     @Override
-    public T transform(T data) {
-        return data;
-    }
+    public Class<?> as() {return as;}
 
     @Override
-    public Ref<FailingConsumer<T>> exec() {return exec;}
+    public void push(Object element) throws EarlyOut {
+        T casted = (T) element;
+        forEachElementDo.accept(casted);
+    }
+    @Override
+    public void setOnExec(FailingConsumer<T> func){
+        this.forEachElementDo = func;
+    }
     @Override
     public boolean isComplete() {
         return indexOfThis.get() >= length;
     }
-
-    /**
-     * Used to append the "index++" operation, but when the handling function for the entry is set in the {@link EntryConfigurator}. <br>
-     * Might also get useful later.
-     */
     @Override
-    public Runnable getOnExecAcceptDoFirst(){
-        return onExecAcceptDoFirst;
+    public EntryEventManager getEventManager() {
+        return eventManager;
     }
-
-
-
-
 }
