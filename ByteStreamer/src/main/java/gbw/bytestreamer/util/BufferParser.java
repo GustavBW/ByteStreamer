@@ -17,8 +17,8 @@ public class BufferParser {
      * Throws when a class it cannot parse is given
      * @param clazz Class to parse the bytes as
      * @param buffer Byte array containing the data to parse
-     * @return A valid instance of some type T - or null.
-     * @throws ParsingException
+     * @return A valid instance of some type T - or null if the input clazz is either NoParse or... you guessed it... null.
+     * @throws ParsingException - Either when the given clazz is not supported or if there isn't enough bytes to parse an instance of said type.
      */
     public static <T> T parse(Class<T> clazz, byte[] buffer) throws ParsingException {
         if (clazz == NoParse.class) {
@@ -43,6 +43,31 @@ public class BufferParser {
     }
 
     /**
+     * Null is default charset
+     * @param buffer
+     * @param encoding
+     * @return
+     * @param <T>
+     * @throws ParsingException
+     */
+    public static String parseString(byte[] buffer, Encodings encoding) throws ParsingException {
+        if(encoding == null){
+            return new String(buffer);
+        }
+        throw new ParsingException("Support not extended for String encoding types just yet");
+    }
+
+    /**
+     * Parses the string as if of default charset which for Java is UTF8 encoding, carset Latin1.
+     * @param buffer
+     * @return
+     * @throws ParsingException
+     */
+    public static String parseString(byte[] buffer) throws ParsingException {
+        return new String(buffer);
+    }
+
+    /**
      *
      * @param outputArraySized An array to write each parsed element to - of the correct size
      * @return the output array provided as third parameter
@@ -57,8 +82,13 @@ public class BufferParser {
         return ((short) ((buffer[0] & 0xFF) | (buffer[1] << 8)));
     }
     public static int parseInt(byte[] buffer) throws NullPointerException, ArrayIndexOutOfBoundsException {
-        return (buffer[0] & 0xFF | (buffer[1] & 0xFF) << 8 | (buffer[2] & 0xFF) << 16 | (buffer[3] << 24));
+        int result = 0;
+        for (int i = 0; i < 4; i++) {
+            result |= (buffer[i] & 0xFF) << (i * 8);
+        }
+        return result;
     }
+
     public static long parseLong(byte[] buffer) throws NullPointerException, ArrayIndexOutOfBoundsException {
         return ((buffer[0] & 0xFFL) | (buffer[1] & 0xFFL) << 8 | (buffer[2] & 0xFFL) << 16 | (buffer[3] & 0xFFL) << 24 |
                 (buffer[4] & 0xFFL) << 32 | (buffer[5] & 0xFFL) << 40 | (buffer[6] & 0xFFL) << 48 | (buffer[7] & 0xFFL) << 56);

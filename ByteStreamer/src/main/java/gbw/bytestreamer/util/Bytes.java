@@ -16,6 +16,33 @@ public class Bytes {
         }
         return toReturn;
     }
+    public static String asZeroesAndOnes(byte... anything){
+        StringBuilder sb = new StringBuilder();
+        boolean[] bitRepresentation = asBoolArray(anything);
+        sb.append("bit len: ").append(bitRepresentation.length).append(" | ");
+        int bitNum = 0;
+        for(boolean b : bitRepresentation){
+            sb.append(b ? "1" : "0");
+            bitNum++;
+            if(bitNum % 8 == 0){
+                sb.append(" ");
+            }
+        }
+        return sb.toString();
+    }
+    public static boolean[] asBoolArray(byte... any){
+        boolean[] bitRepresentation = new boolean[any.length * 8];
+        int byteNum = 0;
+        for(byte b : any){
+            for(int i = 0; i < 8; i++){
+                //If the bit is set / on / 1
+                bitRepresentation[byteNum * 8 + i] = ((b >> i) & 1) == 1;
+            }
+            byteNum++;
+        }
+        return bitRepresentation;
+    }
+
     public static byte[] of(short i16){
         byte[] bytes = new byte[2];
 

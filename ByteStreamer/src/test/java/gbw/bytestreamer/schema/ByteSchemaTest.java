@@ -1,6 +1,7 @@
 package gbw.bytestreamer.schema;
 
 import gbw.bytestreamer.schema.exceptions.EarlyOut;
+import gbw.bytestreamer.util.Bytes;
 import gbw.bytestreamer.util.Ref;
 import gbw.bytestreamer.util.ValErr;
 import utils.FileEncoder;
@@ -159,9 +160,13 @@ class ByteSchemaTest {
             assertEquals(expected, pushedBytes.get(expected -1));
         }
     }
+
     @org.junit.jupiter.api.Test
     void onSchemaComplete() throws Exception {
-        File file = getEncodedTestFile(testDir + "/onSchemaComplete.bin", new byte[]{0,0,0,127});
+        File file = getEncodedTestFile(testDir + "/onSchemaComplete.bin", Bytes.of(127));
+
+        System.out.println(Bytes.asZeroesAndOnes(Bytes.of(1)));
+        System.out.println(Bytes.asZeroesAndOnes(new byte[]{0,0,0,1}));
 
         //Check if it works in general:
         String expectedMsg = "This, not the other one.";

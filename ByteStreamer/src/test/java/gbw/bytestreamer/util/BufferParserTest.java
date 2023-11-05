@@ -17,32 +17,31 @@ class BufferParserTest {
     @Test
     void parse() {
         //Floats - 32
-        byte[] floatBytes = ByteBuffer.allocate(4).putFloat(3.14f).array();
+        byte[] floatBytes = Bytes.of(3.14f);
         assertDoesNotThrow(() -> BufferParser.parse(Float.class, floatBytes));
         assertEquals(3.14f, BufferParser.parse(Float.class, floatBytes), 0.001f); // Check if the parsed float is approximately equal
         //However, it should fail on not enough bytes - buffer underflow
-        assertNull(BufferParser.parse(Float.class, EMPTY_BUFFER));
+        assertThrows(BufferParser.NotEnoughBytesException.class, () -> BufferParser.parse(Float.class, EMPTY_BUFFER));
 
         //Integers
-        byte[] intBytes = ByteBuffer.allocate(4).putInt(42).array();
-        assertDoesNotThrow(() -> BufferParser.parse(Integer.class, intBytes));
-        assertEquals(42, BufferParser.parse(Integer.class, intBytes));
+        assertDoesNotThrow(() -> BufferParser.parse(Integer.class, Bytes.of(42)));
+        assertEquals(42, BufferParser.parse(Integer.class, Bytes.of(42)));
         //However, it should fail on not enough bytes - buffer underflow
-        assertNull(BufferParser.parse(Integer.class, EMPTY_BUFFER));
+        assertThrows(BufferParser.NotEnoughBytesException.class, () -> BufferParser.parse(Integer.class, EMPTY_BUFFER));
 
         //Int64 - Long
-        byte[] longBytes = ByteBuffer.allocate(8).putLong(1234567890L).array();
+        byte[] longBytes = Bytes.of(1234567890L);
         assertDoesNotThrow(() -> BufferParser.parse(Long.class, longBytes));
         assertEquals(1234567890L, BufferParser.parse(Long.class, longBytes));
         //However, it should fail on not enough bytes - buffer underflow
-        assertNull(BufferParser.parse(Long.class, EMPTY_BUFFER));
+        assertThrows(BufferParser.NotEnoughBytesException.class, () -> BufferParser.parse(Long.class, EMPTY_BUFFER));
 
         //Bytes
         byte[] byteBytes = {65}; // ASCII value for 'A'
         assertDoesNotThrow(() -> BufferParser.parse(Byte.class, byteBytes));
         assertEquals((byte) 65, BufferParser.parse(Byte.class, byteBytes));
         //However, it should fail on not enough bytes - buffer underflow
-        assertNull(BufferParser.parse(Byte.class, EMPTY_BUFFER));
+        assertThrows(BufferParser.NotEnoughBytesException.class, () -> BufferParser.parse(Byte.class, EMPTY_BUFFER));
 
         //NoParse
         byte[] noParseBytes = new byte[8]; // Any data will do
@@ -54,8 +53,8 @@ class BufferParserTest {
 
 
         //String: Succeeds in parsing "hello there"
-        assertDoesNotThrow(() -> BufferParser.parse(String.class, HELLO_THERE));
-        assertEquals("hello there", BufferParser.parse(String.class, HELLO_THERE));
+        assertDoesNotThrow(() -> BufferParser.parseString(HELLO_THERE));
+        assertEquals("hello there", BufferParser.parseString(HELLO_THERE));
 
         //Throws on uncovered class
         assertThrows(BufferParser.UncoveredTypeException.class, () -> BufferParser.parse(WierdUncoveredClass.class, EMPTY_BUFFER));

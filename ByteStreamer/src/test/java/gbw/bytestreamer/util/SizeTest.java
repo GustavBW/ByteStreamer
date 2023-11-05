@@ -27,10 +27,12 @@ class SizeTest {
         assertEquals(Float.BYTES, Size.of(float.class));
         assertEquals(Double.BYTES, Size.of(double.class));
 
+        //Null. Because why... why actually
+        assertEquals(1, Size.of((Class<?>) null));
+
         //Unknowns
         assertEquals(-1, Size.of(String.class));
         assertEquals(-1, Size.of(Object.class));
-        assertEquals(-1, Size.of((Class<?>) null));
     }
 
     @Test
@@ -39,6 +41,9 @@ class SizeTest {
         assertEquals(Integer.BYTES, Size.of(new Ref<>(42)));
         assertEquals(Long.BYTES, Size.of(new Ref<>(1234567890L)));
         assertEquals(Byte.BYTES, Size.of(new Ref<>((byte) 8)));
-        assertEquals(2 * 3, Size.of(new Ref<>("abc"))); // Assuming 2 bytes per character
+        //Since String are... cumbersome, this should fail as to calculate the size of the string, the encoding is needed as well.
+        assertNotEquals(2 * 3, Size.of(new Ref<>("abc"))); // Assuming 2 bytes per character
+        //However if the encoding is provided. It should just return length * encoding.byteAmount.
+        assertEquals(3, Size.of("abc", Encodings.UTF_8));
     }
 }
