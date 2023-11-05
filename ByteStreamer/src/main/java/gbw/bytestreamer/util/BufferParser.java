@@ -47,7 +47,6 @@ public class BufferParser {
      * @param buffer
      * @param encoding
      * @return
-     * @param <T>
      * @throws ParsingException
      */
     public static String parseString(byte[] buffer, Encodings encoding) throws ParsingException {
